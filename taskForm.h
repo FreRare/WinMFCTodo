@@ -1,0 +1,4 @@
+class CNewTaskDialog : public CDialogEx
+{
+
+};
