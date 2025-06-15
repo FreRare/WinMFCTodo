@@ -87,7 +87,6 @@ void CTODOView::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
 
 void CTODOView::OnInitialUpdate()
 {
-	m_bIsPopulating = true;
 	CFormView::OnInitialUpdate();
 	
 	m_taskList.SetExtendedStyle(m_taskList.GetExtendedStyle() | LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
@@ -98,11 +97,11 @@ void CTODOView::OnInitialUpdate()
 		m_taskList.InsertColumn(1, _T("Priority"), LVCFMT_LEFT, 100);
 	}
 	LoadTasksFromDocument();
-	m_bIsPopulating = false;
 }
 
 void CTODOView::LoadTasksFromDocument()
 {
+	m_bIsPopulating = true;
 	CTODODoc* pDoc = GetDocument();
 	m_taskList.DeleteAllItems();
 
@@ -126,6 +125,7 @@ void CTODOView::LoadTasksFromDocument()
 		OutputDebugString(msg);
 		m_taskList.SetCheck(i, task.completed);
 	}
+	m_bIsPopulating = false;
 }
 
 void CTODOView::UpdateContents()
