@@ -15,9 +15,9 @@ public:
 
 	CString label;
 	TaskPriority prio;
-	bool completed;
+	BOOL completed;
 
-	Task(const CString t = _T(""), TaskPriority p = TaskPriority::MEDIUM, bool c = false) : label(t), prio(p), completed(c) {}
+	Task(const CString t = _T(""), TaskPriority p = TaskPriority::MEDIUM, BOOL c = false) : label(t), prio(p), completed(c) {}
 };
 
 

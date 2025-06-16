@@ -29,7 +29,9 @@ BEGIN_MESSAGE_MAP(CTODOView, CFormView)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CFormView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CFormView::OnFilePrintPreview)
 	ON_COMMAND(ID_FILE_UPDATE, &CFormView::OnInitialUpdate)
-	ON_COMMAND(ID_FILE_NEW, &CTODOView::OnNewTask)
+	//ON_COMMAND(ID_FILE_NEW, &CTODOView::OnNewDocument)
+	ON_BN_CLICKED(IDC_BUTTON_NEW, &CTODOView::OnNewTask)
+	ON_BN_CLICKED(IDC_BUTTON_REMOVE_CHECKED, &CTODOView::OnRemoveAllFinishedTasks)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_TASK_LIST, &CTODOView::OnLvnItemchangedTaskList)
 	ON_NOTIFY(NM_DBLCLK, IDC_TASK_LIST, &CTODOView::OnNMDblClickTaskList)
 END_MESSAGE_MAP()
@@ -88,7 +90,7 @@ void CTODOView::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
 void CTODOView::OnInitialUpdate()
 {
 	CFormView::OnInitialUpdate();
-	
+
 	m_taskList.SetExtendedStyle(m_taskList.GetExtendedStyle() | LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 	m_taskList.ModifyStyle(0, LVS_REPORT);
 	if (m_taskList.GetHeaderCtrl()->GetItemCount() == 0)  // only add columns if none exist
@@ -102,10 +104,16 @@ void CTODOView::OnInitialUpdate()
 void CTODOView::LoadTasksFromDocument()
 {
 	m_bIsPopulating = true;
+
 	CTODODoc* pDoc = GetDocument();
+
 	m_taskList.DeleteAllItems();
 
 	int count = pDoc->m_tasks.GetSize();
+
+	CString msg;
+	msg.Format(_T("Loading task... total: %d\n"), count);
+	AfxOutputDebugString(msg);
 
 	for (int i = 0; i < count; ++i) {
 		const Task& task = pDoc->m_tasks.GetAt(i);
@@ -119,25 +127,18 @@ void CTODOView::LoadTasksFromDocument()
 		case Task::HIGH: prioStr = _T("Urgent"); break;
 		}
 
-		m_taskList.SetItemText(i, 1, prioStr);
 		CString msg;
-		msg.Format(_T("Initing task item %d to %d\n"), i, task.completed);
 		OutputDebugString(msg);
+		m_taskList.SetItemText(i, 1, prioStr);
 		m_taskList.SetCheck(i, task.completed);
 	}
 	m_bIsPopulating = false;
-}
-
-void CTODOView::UpdateContents()
-{
-	
 }
 
 void CTODOView::OnLvnItemchangedTaskList(NMHDR* pNMHDR, LRESULT* pResult)
 {
 
 	if (m_bIsPopulating) {
-		OutputDebugString(_T("Not updating tasks bc it's not populated\n"));
 		*pResult = 0;
 		return;
 	}
@@ -149,11 +150,9 @@ void CTODOView::OnLvnItemchangedTaskList(NMHDR* pNMHDR, LRESULT* pResult)
 	{
 		int index = pNMLV->iItem;
 		CTODODoc* pDoc = GetDocument();
-		if (index >= 0 && index < pDoc->m_tasks.GetSize())
-		{
-			// State image index 2 means checked, 1 means unchecked
-			UINT state = m_taskList.GetItemState(index, LVIS_STATEIMAGEMASK) >> 12;
-			bool checked = (state == 2); // checked state
+		if (index >= 0 && index < pDoc->m_tasks.GetSize()){
+		
+			BOOL checked = m_taskList.GetCheck(index);
 
 			pDoc->m_tasks[index].completed = checked;
 			CString msg;
@@ -185,8 +184,39 @@ void CTODOView::OnNewTask()
 		CTODODoc* pDoc = GetDocument();
 		pDoc->m_tasks.Add(newTask);
 		pDoc->SetModifiedFlag(TRUE);
-		LoadTasksFromDocument(); // refresh list
+		LoadTasksFromDocument();
 	}
+}
+
+void CTODOView::OnRemoveAllFinishedTasks()
+{
+	// Make sure we want to do this
+	if (AfxMessageBox(_T("Are you sure you want to remove all checked tasks?"), MB_YESNO | MB_ICONQUESTION) != IDYES)
+		return;
+
+	CTODODoc* pDoc = GetDocument();
+
+	// Use a temporary array to hold remaining tasks
+	CArray<Task, Task&> remainingTasks;
+
+	int itemCount = m_taskList.GetItemCount();
+
+	for (int i = 0; i < itemCount; ++i)
+	{
+		if (!m_taskList.GetCheck(i)) // Keep only unchecked tasks
+		{
+			if (i < pDoc->m_tasks.GetSize())
+				remainingTasks.Add(pDoc->m_tasks[i]);
+		}
+	}
+
+	// Replace original task array
+	pDoc->m_tasks.RemoveAll();
+	pDoc->m_tasks.Append(remainingTasks);
+
+	pDoc->SetModifiedFlag(TRUE); // Mark document dirty for saving
+	LoadTasksFromDocument();     // Refresh the list
+
 }
 
 void CTODOView::OnNMDblClickTaskList(NMHDR* pNMHDR, LRESULT* pResult)
@@ -197,12 +227,14 @@ void CTODOView::OnNMDblClickTaskList(NMHDR* pNMHDR, LRESULT* pResult)
 	if (index >= 0)
 	{
 		CTODODoc* pDoc = GetDocument();
+		OutputDebugString(_T("Saving...\n"));
 		if (index < pDoc->m_tasks.GetSize())
 		{
+			OutputDebugString(_T("Got tasks\n"));
 			Task& task = pDoc->m_tasks[index];
 
 			CNewTaskDialog dlg;
-			//dlg.SetWindowText(_T("Edit a task"));
+			// dlg.SetWindowTextW(_T("Edit a task")); // For some reason this is not handled well, maybe because this operation is blocked
 			dlg.m_label = task.label;
 			dlg.m_prioIndex = static_cast<int>(task.prio);
 			dlg.m_completed = task.completed;
@@ -214,8 +246,12 @@ void CTODOView::OnNMDblClickTaskList(NMHDR* pNMHDR, LRESULT* pResult)
 				task.prio = static_cast<Task::TaskPriority>(dlg.m_prioIndex);
 				task.completed = dlg.m_completed;
 
+				CString msg;
+				msg.Format(_T("Saving task with %d and %d and %d\n"), index, dlg.m_completed, dlg.m_prioIndex);
+				OutputDebugString(msg);
+
 				pDoc->SetModifiedFlag(TRUE);
-				LoadTasksFromDocument(); // Refresh the list
+				LoadTasksFromDocument();
 			}
 		}
 	}

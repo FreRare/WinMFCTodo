@@ -44,24 +44,31 @@ BOOL CNewTaskDialog::OnInitDialog()
 		pCombo->AddString(_T("Can wait"));
 		pCombo->AddString(_T("Medium"));
 		pCombo->AddString(_T("Urgent"));
-		pCombo->SetCurSel(1); // default to Medium
+		pCombo->SetCurSel(m_prioIndex); // default to Medium
 	}
 
-	return TRUE;  // return TRUE unless you set the focus to a control
+
+	CEdit* edit = (CEdit*)GetDlgItem(IDC_EDIT_TASK_LABEL);
+	if (edit) {
+		edit->SetFocus();
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 void CNewTaskDialog::OnOK()
 {
-	UpdateData(TRUE); // transfer data from controls to variables
+	UpdateData(TRUE);
 
 	m_label.Trim();
 	if (m_label.IsEmpty())
 	{
 		AfxMessageBox(_T("Please enter a task name."), MB_ICONWARNING);
-		return; // prevent dialog from closing
+		return;
 	}
 
-	CDialogEx::OnOK(); // proceed to close
+	CDialogEx::OnOK();
 }
 
 BEGIN_MESSAGE_MAP(CNewTaskDialog, CDialogEx)

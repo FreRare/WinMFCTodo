@@ -60,8 +60,8 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	//  the CREATESTRUCT cs
 
 	cs.style = WS_OVERLAPPEDWINDOW;
-	cs.cx = 500;
-	cs.cy = 400;
+	cs.cx = 450;
+	cs.cy = 650;
 
 	return TRUE;
 }

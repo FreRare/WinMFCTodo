@@ -11,16 +11,16 @@ protected: // create from serialization only
 	CTODOView() noexcept;
 	DECLARE_DYNCREATE(CTODOView)
 
-// Attributes
+	// Attributes
 public:
 	CTODODoc* GetDocument() const;
 	CListCtrl m_taskList;
 	BOOL m_bIsPopulating;
 
-// Operations
+	// Operations
 public:
 
-// Overrides
+	// Overrides
 public:
 	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
@@ -30,14 +30,15 @@ protected:
 	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void DoDataExchange(CDataExchange* pDX);
 	virtual void OnInitialUpdate();
-	void OnLvnItemchangedTaskList(NMHDR* pNMHDR, LRESULT* pResult);
+	virtual void OnLvnItemchangedTaskList(NMHDR* pNMHDR, LRESULT* pResult);
 	virtual void OnNMDblClickTaskList(NMHDR* pNMHDR, LRESULT* pResult);
 	void LoadTasksFromDocument();
-	void UpdateContents();
+	void OnNewDocument();
 	void OnNewTask();
+	void OnRemoveAllFinishedTasks();
 
 
-// Implementation
+	// Implementation
 public:
 	virtual ~CTODOView();
 #ifdef _DEBUG
@@ -47,13 +48,15 @@ public:
 
 protected:
 
-// Generated message map functions
+	// Generated message map functions
 protected:
 	DECLARE_MESSAGE_MAP()
 };
 
 #ifndef _DEBUG  // debug version in TODOView.cpp
 inline CTODODoc* CTODOView::GetDocument() const
-   { return reinterpret_cast<CTODODoc*>(m_pDocument); }
+{
+	return reinterpret_cast<CTODODoc*>(m_pDocument);
+}
 #endif
 
